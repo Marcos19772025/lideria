@@ -1,0 +1,14 @@
+node_modules/
+dist/
+src/generated/prisma/
+.env
+.env.*
+!.env.example
+*.xlsx
+*.xls
+*.csv
+data/*
+!data/.gitkeep
+migration-report.json
+*.log
+.DS_Store

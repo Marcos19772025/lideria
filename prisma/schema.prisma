@@ -1,0 +1,199 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Configuracao {
+  chave     String  @id @db.VarChar(100)
+  valor     String  @db.Text
+  descricao String? @db.Text
+
+  @@map("configuracoes")
+}
+
+model Usuario {
+  id           String      @id @db.VarChar(40)
+  criadoEm     DateTime    @map("criado_em")
+  nomeCompleto String      @map("nome_completo") @db.VarChar(200)
+  cpf          String?     @unique @db.VarChar(14)
+  email        String      @db.VarChar(254)
+  login        String      @unique @db.VarChar(100)
+  senhaHash    String      @map("senha_hash") @db.Text
+  ultimoAcesso DateTime?   @map("ultimo_acesso")
+  status       String      @db.VarChar(30)
+  perfil       String      @db.VarChar(30)
+  estagiario   Estagiario?
+
+  @@index([email])
+  @@map("usuarios")
+}
+
+model Estagiario {
+  id               String      @id @db.VarChar(40)
+  usuarioId        String?     @unique @map("usuario_id") @db.VarChar(40)
+  usuarioLegadoId  String?     @map("usuario_legado_id") @db.VarChar(40)
+  dataCadastro     DateTime    @map("data_cadastro")
+  dataNascimento   DateTime?   @map("data_nascimento") @db.Date
+  telefone         String?     @db.VarChar(30)
+  consentimento    Boolean     @default(false)
+  consentimentoEm  DateTime?   @map("consentimento_em")
+  statusCadastro   String      @map("status_cadastro") @db.VarChar(30)
+  endereco         String?     @db.Text
+  usuario          Usuario?    @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  avaliacoes       Avaliacao[]
+  recomendacoes    Recomendacao[]
+
+  @@index([usuarioLegadoId])
+  @@map("estagiarios")
+}
+
+model Pergunta {
+  id           String        @id @db.VarChar(30)
+  tipo         String        @db.VarChar(30)
+  texto        String        @db.Text
+  ordem        Int
+  status       String        @db.VarChar(30)
+  versao       String        @db.VarChar(30)
+  alternativas Alternativa[]
+
+  @@index([ordem])
+  @@map("perguntas")
+}
+
+model Alternativa {
+  id         String   @id @db.VarChar(50)
+  perguntaId String   @map("pergunta_id") @db.VarChar(30)
+  texto      String   @db.Text
+  codigo     String   @db.VarChar(30)
+  ordem      Int
+  status     String   @db.VarChar(30)
+  pergunta   Pergunta @relation(fields: [perguntaId], references: [id], onDelete: Cascade)
+
+  @@unique([perguntaId, codigo])
+  @@index([perguntaId, ordem])
+  @@map("alternativas")
+}
+
+model Avaliacao {
+  id                  String                  @id @db.VarChar(40)
+  dataHora            DateTime                @map("data_hora")
+  estagiarioId        String?                 @map("estagiario_id") @db.VarChar(40)
+  estagiarioLegadoId  String?                 @map("estagiario_legado_id") @db.VarChar(40)
+  objetivas           Json                    @map("objetivas_json")
+  discursivas         Json                    @map("discursivas_json")
+  versaoQuestionario  String                  @map("versao_questionario") @db.VarChar(30)
+  statusAnalise       String                  @map("status_analise") @db.VarChar(30)
+  dataAnalise         DateTime?               @map("data_analise")
+  versaoPrompt        String                  @map("versao_prompt") @db.VarChar(30)
+  erro                String?                 @db.Text
+  estagiario          Estagiario?             @relation(fields: [estagiarioId], references: [id], onDelete: SetNull)
+  bigFive             ResultadoBigFive?
+  competencias        ResultadoCompetencias?
+  recomendacoes       Recomendacao[]
+
+  @@index([estagiarioId])
+  @@index([estagiarioLegadoId])
+  @@index([statusAnalise])
+  @@map("avaliacoes")
+}
+
+model ResultadoBigFive {
+  avaliacaoId          String    @id @map("avaliacao_id") @db.VarChar(40)
+  abertura             Int
+  conscienciosidade    Int
+  extroversao          Int
+  amabilidade          Int
+  estabilidadeEmocional Int      @map("estabilidade_emocional")
+  confianca            Int
+  evidencias           Json      @map("evidencias_json")
+  forcas               Json      @map("forcas_json")
+  pontosAtencao        Json      @map("pontos_atencao_json")
+  recomendacoes        Json      @map("recomendacoes_json")
+  ressalvas            Json      @map("ressalvas_json")
+  aprovadoRh           Boolean   @map("aprovado_rh")
+  avaliacao            Avaliacao @relation(fields: [avaliacaoId], references: [id], onDelete: Cascade)
+
+  @@map("resultados_big_five")
+}
+
+model ResultadoCompetencias {
+  avaliacaoId              String    @id @map("avaliacao_id") @db.VarChar(40)
+  comunicacao              Int
+  inteligenciaEmocional    Int       @map("inteligencia_emocional")
+  tomadaDecisao            Int       @map("tomada_decisao")
+  resolucaoProblemas       Int       @map("resolucao_problemas")
+  trabalhoEquipe           Int       @map("trabalho_equipe")
+  adaptabilidade           Int
+  planejamentoOrganizacao  Int       @map("planejamento_organizacao")
+  eticaResponsabilidade    Int       @map("etica_responsabilidade")
+  evidencias               Json      @map("evidencias_json")
+  forcas                   Json      @map("forcas_json")
+  prioridades              Json      @map("prioridades_json")
+  resumoRh                 String    @map("resumo_rh") @db.Text
+  confianca                Int
+  aprovadoRh               Boolean   @map("aprovado_rh")
+  avaliacao                Avaliacao @relation(fields: [avaliacaoId], references: [id], onDelete: Cascade)
+
+  @@map("resultados_competencias")
+}
+
+model Treinamento {
+  id                 String          @id @db.VarChar(80)
+  competencia        String          @db.VarChar(120)
+  variante           String          @db.VarChar(10)
+  nomeAtividade      String          @map("nome_atividade") @db.VarChar(250)
+  objetivo           String          @db.Text
+  faixaPontuacao     String          @map("faixa_pontuacao") @db.VarChar(30)
+  instrucoes         String          @db.Text
+  duracao            String          @db.VarChar(40)
+  criteriosAvaliacao String          @map("criterios_avaliacao") @db.Text
+  status             String          @db.VarChar(30)
+  versao             String          @db.VarChar(30)
+  recomendacoes      Recomendacao[]
+
+  @@index([competencia])
+  @@map("treinamentos")
+}
+
+model Recomendacao {
+  id                   String       @id @db.VarChar(50)
+  avaliacaoId          String       @map("avaliacao_id") @db.VarChar(40)
+  estagiarioId         String?      @map("estagiario_id") @db.VarChar(40)
+  estagiarioLegadoId   String?      @map("estagiario_legado_id") @db.VarChar(40)
+  competencia          String       @db.VarChar(120)
+  treinamentoId        String?      @map("treinamento_id") @db.VarChar(80)
+  treinamentoLegadoId  String?      @map("treinamento_legado_id") @db.VarChar(80)
+  justificativa        String       @db.Text
+  prioridade           String       @db.VarChar(40)
+  prazoSugerido        String       @map("prazo_sugerido") @db.VarChar(60)
+  resultadoEsperado    String       @map("resultado_esperado") @db.Text
+  status               String       @db.VarChar(30)
+  dataRecomendacao     DateTime     @map("data_recomendacao")
+  avaliacao            Avaliacao    @relation(fields: [avaliacaoId], references: [id], onDelete: Cascade)
+  estagiario           Estagiario?  @relation(fields: [estagiarioId], references: [id], onDelete: SetNull)
+  treinamento          Treinamento? @relation(fields: [treinamentoId], references: [id], onDelete: SetNull)
+
+  @@index([avaliacaoId])
+  @@index([estagiarioId])
+  @@index([treinamentoId])
+  @@map("recomendacoes")
+}
+
+model Auditoria {
+  id                String   @id @db.VarChar(50)
+  dataHora          DateTime @map("data_hora")
+  atorId            String   @map("ator_id") @db.VarChar(80)
+  perfil            String   @db.VarChar(30)
+  acao              String   @db.VarChar(100)
+  registroAfetado   String?  @map("registro_afetado") @db.Text
+  resultado         String   @db.VarChar(30)
+  detalhes          String?  @db.Text
+
+  @@index([dataHora])
+  @@index([atorId])
+  @@map("auditoria")
+}
